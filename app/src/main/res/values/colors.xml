@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    colors.xml
+
+    App color palette
+    Material Design 3 colors for the UI
+-->
+<resources>
+    <color name="purple_200">#FFBB86FC</color>
+    <color name="purple_500">#FF6200EE</color>
+    <color name="purple_700">#FF3700B3</color>
+    <color name="teal_200">#FF03DAC5</color>
+    <color name="teal_700">#FF018786</color>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+
+    <!-- EdgeLight specific colors -->
+    <color name="edgelight_glow">#FFF8E1</color>  <!-- Warm white for glow -->
+    <color name="edgelight_active">#4CAF50</color>  <!-- Green for active status -->
+    <color name="edgelight_inactive">#F44336</color>  <!-- Red for inactive status -->
+</resources>

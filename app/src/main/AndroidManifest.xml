@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    AndroidManifest.xml
+
+    Defines app permissions, components, and configuration
+
+    Key Permissions:
+    - CAMERA: For face detection
+    - SYSTEM_ALERT_WINDOW: For drawing overlay on top of other apps
+    - FOREGROUND_SERVICE: For running service in background
+    - FOREGROUND_SERVICE_CAMERA: Android 14+ specific camera service permission
+    - POST_NOTIFICATIONS: For showing service notification (Android 13+)
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Camera permission for face detection -->
+    <uses-permission android:name="android.permission.CAMERA" />
+
+    <!-- Overlay permission to draw on top of other apps -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
+    <!-- Foreground service permissions -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
+
+    <!-- Notification permission (Android 13+) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- Wake lock to keep service running -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
+    <!-- Declare camera features -->
+    <uses-feature android:name="android.hardware.camera.any" />
+    <uses-feature android:name="android.hardware.camera.front" />
+
+    <application
+        android:name=".EdgeLightApp"
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.EdgeLightFlash"
+        tools:targetApi="31">
+
+        <!-- Main Activity (Settings UI) -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:theme="@style/Theme.EdgeLightFlash">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- EdgeLight Foreground Service -->
+        <service
+            android:name=".service.EdgeLightService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="camera" />
+    </application>
+
+</manifest>
