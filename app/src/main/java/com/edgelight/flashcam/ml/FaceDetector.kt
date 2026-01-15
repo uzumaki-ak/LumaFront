@@ -13,27 +13,18 @@ import com.google.mlkit.vision.face.FaceDetection
 import com.google.mlkit.vision.face.FaceDetectorOptions
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
-import kotlinx.coroutines.*
 
 /**
- * FaceDetector - ML Kit face detection
+ * FaceDetector - Enhanced ML Kit face detection
  *
- * PURPOSE: Track face position in real-time
- * - Uses Google ML Kit (FREE, no API key needed)
- * - Runs on-device (no internet required)
- * - Detects face bounding box
- * - Sends position updates to overlay
- *
- * HOW IT WORKS:
- * 1. Opens camera in background (low priority)
- * 2. Feeds frames to ML Kit
- * 3. ML Kit returns face position
- * 4. We send position to OverlayView
- *
- * FIXED: Now properly accepts LifecycleOwner instead of casting context
+ * IMPROVEMENTS:
+ * - Better ML Kit configuration for accuracy
+ * - More reliable face tracking
+ * - Smoother position updates
+ * - Better fallback positioning
  */
 class FaceDetector(
-    private val lifecycleOwner: LifecycleOwner,  // <-- CHANGED: Now explicitly require LifecycleOwner
+    private val lifecycleOwner: LifecycleOwner,
     private val context: Context,
     private val onFaceDetected: (Rect?) -> Unit
 ) {
@@ -42,30 +33,30 @@ class FaceDetector(
         private const val TAG = "FaceDetector"
     }
 
-    // ML Kit face detector
+    // Enhanced ML Kit detector with better accuracy
     private val detector by lazy {
         val options = FaceDetectorOptions.Builder()
-            .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_FAST)  // Fast mode for real-time
-            .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_NONE)  // We don't need landmarks
-            .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_NONE)  // Don't need smile/eyes detection
-            .setMinFaceSize(0.15f)  // Minimum face size (15% of image)
+            .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_ACCURATE)  // CHANGED: Use accurate mode
+            .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_ALL)  // CHANGED: Get all landmarks for better tracking
+            .setContourMode(FaceDetectorOptions.CONTOUR_MODE_ALL)  // CHANGED: Get contours for precise positioning
+            .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_NONE)
+            .setMinFaceSize(0.1f)  // CHANGED: Detect smaller faces too
+            .enableTracking()  // CHANGED: Enable tracking for smoother updates
             .build()
 
         FaceDetection.getClient(options)
     }
 
-    // Camera components
     private var cameraProvider: ProcessCameraProvider? = null
     private var camera: Camera? = null
     private val cameraExecutor: ExecutorService = Executors.newSingleThreadExecutor()
 
     private var isRunning = false
-    private val detectionScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 
-    /**
-     * Starts face detection
-     * Opens camera and begins processing frames
-     */
+    // Smoothing - average last few face positions
+    private val facePositionHistory = mutableListOf<Rect>()
+    private val historySize = 3
+
     fun start() {
         if (isRunning) return
         isRunning = true
@@ -74,27 +65,20 @@ class FaceDetector(
         startCamera()
     }
 
-    /**
-     * Stops face detection
-     * Releases camera and ML Kit resources
-     */
     fun stop() {
         if (!isRunning) return
         isRunning = false
 
         Log.d(TAG, "Stopping face detection...")
 
-        // Release camera
         cameraProvider?.unbindAll()
         camera = null
+        facePositionHistory.clear()
 
-        // Cancel any ongoing detection
-        detectionScope.cancel()
+        // Send null to hide overlay
+        onFaceDetected(null)
     }
 
-    /**
-     * Initializes and starts camera
-     */
     private fun startCamera() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
 
@@ -104,24 +88,21 @@ class FaceDetector(
                 bindCameraUseCases()
             } catch (e: Exception) {
                 Log.e(TAG, "Camera initialization failed", e)
-                // Fall back to estimated position if camera fails
+                // Use estimated position as fallback
                 onFaceDetected(getEstimatedFacePosition())
             }
         }, ContextCompat.getMainExecutor(context))
     }
 
-    /**
-     * Binds camera use cases for face detection
-     */
     private fun bindCameraUseCases() {
         val cameraProvider = cameraProvider ?: return
 
-        // Select front camera
         val cameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA
 
-        // Image analysis for face detection
+        // Enhanced image analysis with better quality
         val imageAnalysis = ImageAnalysis.Builder()
-            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)  // Drop old frames
+            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+            .setTargetRotation(android.view.Surface.ROTATION_0)  // Proper rotation
             .build()
             .also {
                 it.setAnalyzer(cameraExecutor) { imageProxy ->
@@ -130,47 +111,40 @@ class FaceDetector(
             }
 
         try {
-            // Unbind any existing use cases
             cameraProvider.unbindAll()
 
-            // Bind camera to lifecycle
-            // FIXED: Now using the proper lifecycleOwner parameter instead of casting context
             camera = cameraProvider.bindToLifecycle(
-                lifecycleOwner,  // <-- CHANGED: Use the proper LifecycleOwner we got in constructor
+                lifecycleOwner,
                 cameraSelector,
                 imageAnalysis
             )
 
-            Log.d(TAG, "Camera bound successfully")
+            Log.d(TAG, "Camera bound successfully for face detection")
         } catch (e: Exception) {
-            Log.e(TAG, "Camera binding failed: ${e.message}", e)
-            // Use estimated position as fallback
+            Log.e(TAG, "Camera binding failed", e)
             onFaceDetected(getEstimatedFacePosition())
         }
     }
 
-    /**
-     * Processes camera frame for face detection
-     */
     @androidx.camera.core.ExperimentalGetImage
     private fun processImageProxy(imageProxy: ImageProxy) {
         val mediaImage = imageProxy.image
-        if (mediaImage != null) {
+        if (mediaImage != null && isRunning) {
             val image = InputImage.fromMediaImage(
                 mediaImage,
                 imageProxy.imageInfo.rotationDegrees
             )
 
-            // Run face detection
             detector.process(image)
                 .addOnSuccessListener { faces ->
-                    handleDetectionResult(faces)
+                    handleDetectionResult(faces, imageProxy.width, imageProxy.height)
                 }
                 .addOnFailureListener { e ->
                     Log.e(TAG, "Face detection failed", e)
+                    onFaceDetected(getEstimatedFacePosition())
                 }
                 .addOnCompleteListener {
-                    imageProxy.close()  // Always close the image
+                    imageProxy.close()
                 }
         } else {
             imageProxy.close()
@@ -178,38 +152,97 @@ class FaceDetector(
     }
 
     /**
-     * Handles face detection results
+     * IMPROVED: Better face position handling with smoothing
      */
-    private fun handleDetectionResult(faces: List<Face>) {
+    private fun handleDetectionResult(faces: List<Face>, imageWidth: Int, imageHeight: Int) {
         if (faces.isNotEmpty()) {
-            // Use the first (largest) face detected
-            val face = faces[0]
-            val boundingBox = face.boundingBox
+            // Use the largest face (usually the person in front)
+            val face = faces.maxByOrNull { it.boundingBox.width() * it.boundingBox.height() } ?: faces[0]
 
-            Log.d(TAG, "Face detected at: $boundingBox")
-            onFaceDetected(boundingBox)
+            // Convert camera coordinates to screen coordinates
+            val screenRect = convertToScreenCoordinates(face.boundingBox, imageWidth, imageHeight)
+
+            // Add to history for smoothing
+            facePositionHistory.add(screenRect)
+            if (facePositionHistory.size > historySize) {
+                facePositionHistory.removeAt(0)
+            }
+
+            // Get smoothed position
+            val smoothedRect = getSmoothedFacePosition()
+
+            Log.d(TAG, "Face detected at: $smoothedRect")
+            onFaceDetected(smoothedRect)
         } else {
-            // No face detected - use estimated position
-            Log.d(TAG, "No face detected, using estimated position")
+            Log.d(TAG, "No face detected")
             onFaceDetected(getEstimatedFacePosition())
         }
     }
 
     /**
-     * Returns estimated face position (center of screen)
-     * Used as fallback when camera access fails or no face detected
+     * Converts camera image coordinates to screen coordinates
+     */
+    private fun convertToScreenCoordinates(rect: Rect, imageWidth: Int, imageHeight: Int): Rect {
+        val displayMetrics = context.resources.displayMetrics
+        val screenWidth = displayMetrics.widthPixels
+        val screenHeight = displayMetrics.heightPixels
+
+        // Scale factor
+        val scaleX = screenWidth.toFloat() / imageWidth.toFloat()
+        val scaleY = screenHeight.toFloat() / imageHeight.toFloat()
+
+        return Rect(
+            (rect.left * scaleX).toInt(),
+            (rect.top * scaleY).toInt(),
+            (rect.right * scaleX).toInt(),
+            (rect.bottom * scaleY).toInt()
+        )
+    }
+
+    /**
+     * Returns smoothed face position (average of recent positions)
+     */
+    private fun getSmoothedFacePosition(): Rect {
+        if (facePositionHistory.isEmpty()) {
+            return getEstimatedFacePosition()
+        }
+
+        var left = 0
+        var top = 0
+        var right = 0
+        var bottom = 0
+
+        for (rect in facePositionHistory) {
+            left += rect.left
+            top += rect.top
+            right += rect.right
+            bottom += rect.bottom
+        }
+
+        val count = facePositionHistory.size
+        return Rect(
+            left / count,
+            top / count,
+            right / count,
+            bottom / count
+        )
+    }
+
+    /**
+     * Returns estimated face position (center-upper area of screen)
+     * Used when no face detected
      */
     private fun getEstimatedFacePosition(): Rect {
         val displayMetrics = context.resources.displayMetrics
         val screenWidth = displayMetrics.widthPixels
         val screenHeight = displayMetrics.heightPixels
 
-        // Assume face is centered, roughly 30% of screen height
-        val faceHeight = (screenHeight * 0.3).toInt()
-        val faceWidth = (faceHeight * 0.75).toInt()  // 3:4 aspect ratio
+        // Face typically in upper-center during video calls
+        val faceHeight = (screenHeight * 0.35).toInt()
+        val faceWidth = (faceHeight * 0.7).toInt()
 
         val left = (screenWidth - faceWidth) / 2
-        val top = (screenHeight - faceHeight) / 2
+        val top = (screenHeight * 0.25).toInt()  // Upper portion of screen
         val right = left + faceWidth
         val bottom = top + faceHeight
 
