@@ -1,10 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-    strings.xml
-
-    All app text strings
-    Makes text easy to update and translate
--->
 <resources>
     <string name="app_name">EdgeLight Flash</string>
 
@@ -15,14 +9,23 @@
     <string name="stop_service">Stop Service</string>
     <string name="grant_permissions">Grant Permissions</string>
 
+    <!-- NEW: Color picker -->
+    <string name="choose_color">Choose Edge Light Color</string>
+    <string name="solid_colors">Solid Colors</string>
+    <string name="gradient_colors">Gradient Options</string>
+    <string name="current_glow">Current Glow</string>
+
     <!-- Descriptions -->
     <string name="app_description">EdgeLight adds face-tracking screen flash to ALL apps.\n\nWorks with WhatsApp, Telegram, Instagram, and more!</string>
 
     <!-- Notifications -->
     <string name="notification_title">EdgeLight Active</string>
     <string name="notification_text">Face-tracking flash is running</string>
+    <string name="notification_lighting">Lighting active</string>
+    <string name="notification_waiting">Waiting for camera...</string>
 
     <!-- Permissions -->
     <string name="permission_camera_rationale">Camera permission is required for face tracking</string>
     <string name="permission_overlay_rationale">Overlay permission is required to display the edge light</string>
+    <string name="permission_brightness_rationale">Settings permission is required for auto brightness</string>
 </resources>

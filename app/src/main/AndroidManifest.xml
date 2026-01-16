@@ -1,36 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-    AndroidManifest.xml
-
-    Defines app permissions, components, and configuration
-
-    Key Permissions:
-    - CAMERA: For face detection
-    - SYSTEM_ALERT_WINDOW: For drawing overlay on top of other apps
-    - FOREGROUND_SERVICE: For running service in background
-    - FOREGROUND_SERVICE_CAMERA: Android 14+ specific camera service permission
-    - POST_NOTIFICATIONS: For showing service notification (Android 13+)
--->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Camera permission for face detection -->
+    <!-- Camera permission -->
     <uses-permission android:name="android.permission.CAMERA" />
 
-    <!-- Overlay permission to draw on top of other apps -->
+    <!-- Overlay permission -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
-    <!-- Foreground service permissions -->
+    <!-- Foreground service -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
 
     <!-- Notification permission (Android 13+) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
-    <!-- Wake lock to keep service running -->
+    <!-- Wake lock -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
-    <!-- Declare camera features -->
+    <!-- NEW: Write settings permission for auto brightness -->
+    <uses-permission android:name="android.permission.WRITE_SETTINGS"
+        tools:ignore="ProtectedPermissions" />
+
+    <!-- Camera features -->
     <uses-feature android:name="android.hardware.camera.any" />
     <uses-feature android:name="android.hardware.camera.front" />
 
@@ -46,7 +38,6 @@
         android:theme="@style/Theme.EdgeLightFlash"
         tools:targetApi="31">
 
-        <!-- Main Activity (Settings UI) -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -57,7 +48,6 @@
             </intent-filter>
         </activity>
 
-        <!-- EdgeLight Foreground Service -->
         <service
             android:name=".service.EdgeLightService"
             android:enabled="true"

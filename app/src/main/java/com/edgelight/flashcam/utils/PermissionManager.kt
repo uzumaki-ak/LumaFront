@@ -11,54 +11,47 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 
 /**
- * PermissionManager - Handles all app permissions
+ * PermissionManager - Updated with brightness permission
  *
- * PURPOSE: Request and check permissions
- * - Camera permission
- * - Overlay permission (draw on top)
- * - Notification permission (Android 13+)
- *
- * Makes permission handling easy and clean
+ * NEW:
+ * - System settings write permission for auto brightness
  */
 class PermissionManager(private val activity: Activity) {
 
     companion object {
         private const val PERMISSION_REQUEST_CODE = 1001
         private const val OVERLAY_PERMISSION_REQUEST_CODE = 1002
+        private const val WRITE_SETTINGS_REQUEST_CODE = 1003
     }
 
-    // List of runtime permissions we need
     private val requiredPermissions = mutableListOf(
         Manifest.permission.CAMERA
     ).apply {
-        // Add notification permission for Android 13+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             add(Manifest.permission.POST_NOTIFICATIONS)
         }
     }
 
-    /**
-     * Checks if all permissions are granted
-     */
     fun hasAllPermissions(): Boolean {
-        // Check runtime permissions
         val hasRuntimePermissions = requiredPermissions.all { permission ->
             ContextCompat.checkSelfPermission(activity, permission) == PackageManager.PERMISSION_GRANTED
         }
 
-        // Check overlay permission
         val hasOverlayPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             Settings.canDrawOverlays(activity)
         } else {
             true
         }
 
-        return hasRuntimePermissions && hasOverlayPermission
+        val hasWriteSettings = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            Settings.System.canWrite(activity)
+        } else {
+            true
+        }
+
+        return hasRuntimePermissions && hasOverlayPermission && hasWriteSettings
     }
 
-    /**
-     * Requests all required permissions
-     */
     fun requestAllPermissions() {
         // Request runtime permissions
         val permissionsToRequest = requiredPermissions.filter { permission ->
@@ -81,11 +74,17 @@ class PermissionManager(private val activity: Activity) {
             )
             activity.startActivityForResult(intent, OVERLAY_PERMISSION_REQUEST_CODE)
         }
+
+        // Request write settings permission (for auto brightness)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.System.canWrite(activity)) {
+            val intent = Intent(
+                Settings.ACTION_MANAGE_WRITE_SETTINGS,
+                Uri.parse("package:${activity.packageName}")
+            )
+            activity.startActivityForResult(intent, WRITE_SETTINGS_REQUEST_CODE)
+        }
     }
 
-    /**
-     * Checks if camera permission is granted
-     */
     fun hasCameraPermission(): Boolean {
         return ContextCompat.checkSelfPermission(
             activity,
@@ -93,12 +92,17 @@ class PermissionManager(private val activity: Activity) {
         ) == PackageManager.PERMISSION_GRANTED
     }
 
-    /**
-     * Checks if overlay permission is granted
-     */
     fun hasOverlayPermission(): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             Settings.canDrawOverlays(activity)
+        } else {
+            true
+        }
+    }
+
+    fun hasWriteSettingsPermission(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            Settings.System.canWrite(activity)
         } else {
             true
         }
