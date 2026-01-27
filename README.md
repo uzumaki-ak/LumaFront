@@ -15,8 +15,9 @@ wiht and without edge image comparison in dark
 ![without-edge.jpeg](../../Downloads/without-edge.jpeg)
 ## with:
 ![with-edge.jpeg](../../Downloads/with-edge.jpeg)
-
+![without-edge.jpeg](../../Downloads/without-edge.jpeg)
 ---
+![with-edge.jpeg](../../Downloads/with-edge.jpeg)
 
 
 # ✨ Features
