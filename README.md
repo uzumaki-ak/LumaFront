@@ -9,6 +9,7 @@
 This project combines camera management, face detection, overlay rendering, and background services into a seamless package. Its core features include a persistent foreground service with a customizable overlay glow, camera usage monitoring, and an intuitive control UI for starting/stopping the system-wide lighting effect.
 
 ---
+## demo video: https://youtu.be/nrljg4TrCF0
 
 ## wiht and without edge image comparison in dark
 ## https://drive.google.com/drive/folders/1KhZvd5DmPTiNmg_H5Plz4QDBzzFlvbZO?usp=sharing
