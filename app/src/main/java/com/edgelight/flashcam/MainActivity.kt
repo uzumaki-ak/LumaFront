@@ -348,4 +348,4 @@ fun Color.toArgb(): Int {
     val g = (green * 255.0f + 0.5f).toInt()
     val b = (blue * 255.0f + 0.5f).toInt()
     return (a shl 24) or (r shl 16) or (g shl 8) or b
-}
+} 

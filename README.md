@@ -10,6 +10,15 @@ This project combines camera management, face detection, overlay rendering, and 
 
 ---
 
+wiht and without edge image comparison in dark 
+## without:
+![without-edge.jpeg](../../Downloads/without-edge.jpeg)
+## with:
+![with-edge.jpeg](../../Downloads/with-edge.jpeg)
+
+---
+
+
 # ✨ Features
 
 - **Real-time Face Detection:** Utilizes ML Kit on-device face detection to track face position dynamically.
